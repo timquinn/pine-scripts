@@ -154,6 +154,7 @@ alertcondition(sellcond, title="SELL Signal (TQ)", message="{{exchange}}:{{ticke
 // chart when something with a buy on it enters a bull market.  Need to adapt this to buy on sideways markets, but need to work on conditional nature of sidecond first (which says gridbuy not true)
 gridbuy= (bullcond ==true) or (sidecond ==true) and (buycond ==true)
 plotshape(gridbuy, style=shape.cross, title="Grid Start", text="Grid Start")
+alertcondition(gridbuy, title="Grid Buy", message=" ")
 
 //chart when a grid buy enters a bear market, which is where you do NOT want a grid running.  This script will not ever start in any sort of bear market condition, even if the bot issues a buy in the bear (Which is what we want - we want to catch spikes for buys, but grids are less concerned.)
 // This will stop the grid on EITHER a bear market starting or the DCA bot issing a sell.  Basically we want to be extra careful to not keep the grid running in any sort of downward trend.  This should catch both.  Because of this you'll see more grid sells than grid buys, which is ok.  It doesn't matter if we try to stop a grid both that is already stopped.
