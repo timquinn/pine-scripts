@@ -78,6 +78,36 @@ getMA(src, length) =>
         ma
     ma
 
+// TQ: Sideways / Bull / Bear Trend Detector.  Last updated 1/21/2021
+lenadx = input(14, minval=1, title="DI Length")
+lensig = input(14, title="ADX Smoothing", minval=1, maxval=50)
+limadx = input(18, minval=1, title="ADX MA Active")
+
+up = change(high)
+down = -change(low)
+trur = rma(tr, lenadx)
+plus = fixnan(100 * rma(up > down and up > 0 ? up : 0, lenadx) / trur)
+minus = fixnan(100 * rma(down > up and down > 0 ? down : 0, lenadx) / trur)
+sum = plus + minus
+adx = 100 * rma(abs(plus - minus) / (sum == 0 ? 1 : sum), lensig)
+
+macol = adx > limadx and plus > minus ? color.lime : adx > limadx and plus < minus ? color.red : color.black
+
+bullcond= adx > limadx and plus > minus and macol != macol[1]
+bearcond= adx > limadx and plus < minus and macol != macol[1]
+sidecond= not bullcond and not bearcond and macol != macol[1]
+
+
+plotshape(bullcond,style=shape.triangleup,color=color.lime,text="Bull 👆",textcolor=color.white,location=location.bottom,title="BULL",offset=-1)
+plotshape(bearcond,style=shape.triangledown,color=color.fuchsia,text="Bear 👇",textcolor=color.white,location=location.bottom,title="BEAR",offset=-1)
+plotshape(sidecond,style=shape.circle,color=color.blue,text="Side 👉",textcolor=color.white,location=location.bottom,title="SIDE",offset=-1)
+
+alertcondition(bearcond,title="Bear Condition",message="{{exchange}}:{{ticker}} - Bear condition detected!")
+alertcondition(bullcond,title="Bull Condition",message="{{exchange}}:{{ticker}} - Bull condition detected!")
+alertcondition(sidecond,title="Sideway Condition",message="{{exchange}}:{{ticker}} - Sideway condition detected!")
+// End Trend Detector
+
+
 MAvg=getMA(src, length)
 fark=MAvg*percent*0.01
 longStop = MAvg - fark
@@ -118,3 +148,14 @@ sellcond = (sellSignallk[1] and showsignalsk == true) or (sellSignallc[1] and sh
 
 alertcondition(buycond, title="BUY Signal (TQ)", message="{{exchange}}:{{ticker}} - BUY Signal Detected")
 alertcondition(sellcond, title="SELL Signal (TQ)", message="{{exchange}}:{{ticker}} - SELL Signal Detected")
+
+//TQ: Grid Alerting system.  The Trend must be bullish or sideways.  Intended to be used to open a grid.  We do not take sells here since any sell signal should shut down the grid
+
+// chart when something with a buy on it enters a bull market.  Need to adapt this to buy on sideways markets, but need to work on conditional nature of sidecond first (which says gridbuy not true)
+gridbuy= (bullcond ==true) or (sidecond ==true) and (buycond ==true)
+plotshape(gridbuy, style=shape.cross, title="Grid Start", text="Grid Start")
+
+//chart when a grid buy enters a bear market, which is where you do NOT want a grid running.  This script will not ever start in any sort of bear market condition, even if the bot issues a buy in the bear (Which is what we want - we want to catch spikes for buys, but grids are less concerned.)
+// This will stop the grid on EITHER a bear market starting or the DCA bot issing a sell.  Basically we want to be extra careful to not keep the grid running in any sort of downward trend.  This should catch both.  Because of this you'll see more grid sells than grid buys, which is ok.  It doesn't matter if we try to stop a grid both that is already stopped.
+gridsell= (bearcond ==true) or (sellcond==true)
+plotshape(gridsell, style=shape.xcross, title="Grid Stop", text="Grid Stop")
